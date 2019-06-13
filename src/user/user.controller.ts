@@ -21,7 +21,14 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly mapperService: MapperService,
-  ) {}
+  ) {
+    this.mapperService.createMap(RegisterUserVm.name, User.name);
+    this.mapperService
+      .createMap(User.name, UserVm.name)
+      .forSourceMember('_id', opts => opts.ignore())
+      .forSourceMember('password', opts => opts.ignore())
+      .forSourceMember('__v', opts => opts.ignore());
+  }
 
   @Post('user/register')
   @ApiResponse({ status: HttpStatus.CREATED, type: UserVm })

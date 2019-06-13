@@ -1,9 +1,11 @@
+import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ModelType } from 'typegoose';
 import { AuthService } from '../auth/auth.service';
 import { TokenService } from '../auth/token/token.service';
 import { MapperService } from '../shared/mapper/mapper.service';
-import { getModelToken } from '@nestjs/mongoose';
-import { ModelType } from 'typegoose';
+import { User } from './models/user.model';
+import { UserService } from './user.service';
 
 describe('UserService', () => {
   let service: UserService;

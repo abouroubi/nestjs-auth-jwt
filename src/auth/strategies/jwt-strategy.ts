@@ -1,15 +1,15 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { AuthService } from '../auth.service';
-import { JwtPayload } from '../jwt-payload';
 import { ConfigurationService } from '../../shared/configuration/configuration.service';
+import { JwtPayload } from '../jwt-payload';
+import { TokenService } from '../token/token.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    private readonly authService: AuthService,
-    private readonly configurationService: ConfigurationService,
+    private readonly tokenService: TokenService,
+    configurationService: ConfigurationService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -21,13 +21,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(req, payload: JwtPayload) {
-    // Little hack but ¯\_(ツ)_/¯
-    const self: any = this;
-    const token = self._jwtFromRequest(req);
-    // We can now use this token to check it against black list
-    // @todo: check against black list :D
-    const result = await this.authService.validatePayload(payload);
+  async validate(payload: JwtPayload) {
+    const result = await this.tokenService.validatePayload(payload);
     if (!result) {
       throw new UnauthorizedException();
     }

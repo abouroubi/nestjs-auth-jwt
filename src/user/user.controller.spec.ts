@@ -1,20 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserController } from './user.controller';
-import { ClientService } from './client/client.service';
+import { UserService } from './user.service';
+import { MapperService } from '../shared/mapper/mapper.service';
 
 describe('User Controller', () => {
   let module: TestingModule;
 
-  const mockClientService: Partial<ClientService> = {};
+  const mockUserService: Partial<UserService> = {};
 
   beforeAll(async () => {
     module = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
         {
-          provide: ClientService,
-          useValue: mockClientService,
+          provide: UserService,
+          useValue: mockUserService,
         },
+        MapperService,
       ],
     }).compile();
   });

@@ -30,7 +30,7 @@ export abstract class BaseService<T extends Typegoose> {
     return this._model.findOneAndDelete(Types.ObjectId(id)).exec();
   }
 
-  async delete(filter = {}): Promise<InstanceType<T>[]> {
+  async delete(filter = {}): Promise<any> {
     return this._model.deleteMany(filter).exec();
   }
 }

@@ -1,10 +1,10 @@
 import { Logger, Injectable } from '@nestjs/common';
 import { compare, genSalt, hash } from 'bcryptjs';
-import { ModelType } from 'typegoose';
-import { Login } from '../auth/models/login.model';
+import { ModelType, InstanceType } from 'typegoose';
 import { BaseService } from '../shared/base.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './models/user.model';
+import { LoginVm } from '../auth/view-models/login-vm.model';
 
 @Injectable()
 export class UserService extends BaseService<User> {
@@ -17,7 +17,7 @@ export class UserService extends BaseService<User> {
     this._model = userModel;
   }
 
-  async login(loginObject: Login): Promise<string> {
+  async login(loginObject: LoginVm): Promise<InstanceType<User>> {
     const { email, password } = loginObject;
 
     const user = await this.findOne({ email });
@@ -33,7 +33,7 @@ export class UserService extends BaseService<User> {
       throw new Error('Invalid credentials');
     }
 
-    return user.id;
+    return user;
   }
 
   async register(user: User): Promise<User> {
@@ -47,8 +47,6 @@ export class UserService extends BaseService<User> {
     newUser.gender = user.gender;
     newUser.birthDate = user.birthDate;
     newUser.deviceId = user.deviceId;
-    newUser.socialLogin = user.socialLogin;
-    newUser.socialId = user.socialId;
 
     try {
       const result = await this.create(newUser);

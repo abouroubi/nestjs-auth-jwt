@@ -32,12 +32,6 @@ export class User extends BaseModel {
   @prop()
   deviceId?: string;
 
-  @prop({ default: false })
-  socialLogin: boolean;
-
-  @prop()
-  socialId?: string;
-
   @prop()
   birthDate?: Date;
 
