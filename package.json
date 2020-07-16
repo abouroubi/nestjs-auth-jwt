@@ -33,7 +33,7 @@
     "dotenv": "^8.0.0",
     "helmet": "^3.18.0",
     "jsonwebtoken": "^8.5.1",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.19",
     "moment": "^2.24.0",
     "mongoose": "^5.7.5",
     "passport": "^0.4.0",
