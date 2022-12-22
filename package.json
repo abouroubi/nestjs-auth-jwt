@@ -32,7 +32,7 @@
     "class-validator": "^0.9.1",
     "dotenv": "^8.0.0",
     "helmet": "^3.18.0",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "mongoose": "^5.7.5",
