@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { randomBytes } from 'crypto';
-import { sign, SignOptions, verify } from 'jsonwebtoken';
-import * as moment from 'moment';
+import { sign, SignOptions, verify, Secret } from 'jsonwebtoken';
+import moment from 'moment';
 import { Types } from 'mongoose';
-import { InstanceType, ModelType } from 'typegoose';
+import { DocumentType, ReturnModelType } from '@typegoose/typegoose';
 import { BaseService } from '../../shared/base.service';
 import { ConfigurationService } from '../../shared/configuration/configuration.service';
 import { NotFoundError } from '../../shared/errors/not-found.error';
@@ -13,22 +13,22 @@ import { JwtPayload } from '../jwt-payload';
 import { LoginResponse } from '../models/login-response';
 import { RefreshToken } from '../models/refresh-token.model';
 import { LoginResponseVm } from '../view-models/login-response-vm.model';
-import uuid = require('uuid');
+import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class TokenService extends BaseService<RefreshToken> {
   private readonly logger = new Logger(TokenService.name);
 
-  private readonly jwtOptions: SignOptions;
+  private readonly jwtOptions: SignOptions & { expiresIn?: string | number };
   private readonly jwtKey: string;
   private refreshTokenTtl: number;
   private expiresInDefault: string | number;
 
   // @todo: should be put in redis cache
-  private readonly usersExpired: number[] = [];
+  private readonly usersExpired: Record<string, number> = {};
 
   constructor(
-    @InjectModel(RefreshToken.modelName) tokenModel: ModelType<RefreshToken>,
+    @InjectModel(RefreshToken.modelName) tokenModel: ReturnModelType<typeof RefreshToken>,
     private readonly configurationService: ConfigurationService,
     private readonly mapperService: MapperService,
   ) {
@@ -90,8 +90,18 @@ export class TokenService extends BaseService<RefreshToken> {
     expires = this.expiresInDefault,
   ): Promise<LoginResponseVm> {
     // If expires is negative it means that token should not expire
-    const options = this.jwtOptions;
-    expires > 0 ? (options.expiresIn = expires) : delete options.expiresIn;
+    // Create a new options object to avoid modifying the original
+    const options: SignOptions = { ...this.jwtOptions };
+    
+    if (typeof expires === 'number' && expires > 0) {
+      options.expiresIn = expires;
+    } else if (typeof expires === 'string' && expires) {
+      // For string values like '1h', '7d', etc.
+      // Using type assertion to handle the string type
+      options.expiresIn = expires as any;
+    } else {
+      delete options.expiresIn;
+    }
     // Generate unique id for this token
     options.jwtid = uuid();
     const signedPayload = sign(payload, this.jwtKey, options);
@@ -114,17 +124,15 @@ export class TokenService extends BaseService<RefreshToken> {
   }): Promise<string> {
     const { userId, clientId, ipAddress } = tokenContent;
 
-    const token: InstanceType<RefreshToken> = new RefreshToken.model();
+    const token = new this._model();
 
     const refreshToken = randomBytes(64).toString('hex');
 
-    token.userId = Types.ObjectId(userId);
+    token.userId = new Types.ObjectId(userId);
     token.value = refreshToken;
     token.clientId = clientId;
     token.ipAddress = ipAddress;
-    token.expiresAt = moment()
-      .add(this.refreshTokenTtl, 'd')
-      .toDate();
+    token.expiresAt = moment().add(this.refreshTokenTtl, 'd').toDate();
 
     await this.create(token);
 
@@ -136,7 +144,7 @@ export class TokenService extends BaseService<RefreshToken> {
    * @param userId id of the user
    */
   async deleteRefreshTokenForUser(userId: string) {
-    await this.delete({ userId: Types.ObjectId(userId) });
+    await this.delete({ userId: new Types.ObjectId(userId) });
     await this.revokeTokenForUser(userId);
   }
 
@@ -185,8 +193,6 @@ export class TokenService extends BaseService<RefreshToken> {
   }
 
   private async revokeTokenForUser(userId: string): Promise<any> {
-    this.usersExpired[userId] = moment()
-      .add(this.expiresInDefault, 's')
-      .unix();
+    this.usersExpired[userId] = moment().add(this.expiresInDefault, 's').unix();
   }
 }

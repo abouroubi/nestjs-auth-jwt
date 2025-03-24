@@ -1,24 +1,24 @@
-import { ApiModelPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class ApiException {
-  @ApiModelPropertyOptional()
+  @ApiPropertyOptional()
   statusCode?: number;
 
-  @ApiModelPropertyOptional()
+  @ApiPropertyOptional()
   message?: string;
 
-  @ApiModelPropertyOptional()
+  @ApiPropertyOptional()
   status?: string;
 
-  @ApiModelPropertyOptional()
+  @ApiPropertyOptional()
   error?: string;
 
-  @ApiModelPropertyOptional()
+  @ApiPropertyOptional()
   errors?: any;
 
-  @ApiModelPropertyOptional()
+  @ApiPropertyOptional()
   timestamp?: string;
 
-  @ApiModelPropertyOptional()
+  @ApiPropertyOptional()
   path?: string;
 }

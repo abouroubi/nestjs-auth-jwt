@@ -8,9 +8,13 @@ export class ConfigurationService {
   private currentEnv: string = process.env.NODE_ENV || 'development';
 
   constructor() {
-    const result = dotenv.config();
-    if (result.error) {
-      throw result.error;
+    try {
+      const result = dotenv.config();
+      if (result.error) {
+        this.logger.warn('Error loading .env file, using default values');
+      }
+    } catch (error) {
+      this.logger.warn('Error loading .env file, using default values');
     }
   }
 
@@ -27,7 +31,7 @@ export class ConfigurationService {
   }
 
   get mongoUri(): string {
-    return process.env.MONGO_URI;
+    return process.env.MONGO_URI || 'mongodb://localhost:27017/nestjs-auth-jwt';
   }
 
   get JWT() {

@@ -15,9 +15,9 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
-  ApiImplicitQuery,
   ApiOperation,
   ApiResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { ExtractJwt } from 'passport-jwt';
 import { Ip } from '../shared/decorators/ip.decorator';
@@ -68,10 +68,10 @@ export class AuthController {
   @ApiResponse({ status: HttpStatus.OK, type: LoginResponseVm })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, type: BadRequestException })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, type: UnauthorizedException })
-  @ApiImplicitQuery({ name: 'grant_type', enum: EnumToArray(GrantType) })
-  @ApiImplicitQuery({ name: 'refresh_token', required: false })
-  @ApiImplicitQuery({ name: 'client_id', required: false })
-  @ApiOperation({ title: 'AccessToken', description: 'Get a refresh token' })
+  @ApiQuery({ name: 'grant_type', enum: GrantType })
+  @ApiQuery({ name: 'refresh_token', required: false })
+  @ApiQuery({ name: 'client_id', required: false })
+  @ApiOperation({ summary: 'AccessToken', description: 'Get a refresh token' })
   async token(
     @Req() req,
     @Ip() userIp,
