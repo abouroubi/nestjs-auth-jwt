@@ -13,7 +13,22 @@ import { AuthModule } from './auth/auth.module';
     MongooseModule.forRootAsync({
       useFactory: async (configService: ConfigurationService) => ({
         uri: configService.mongoUri,
-        useNewUrlParser: true,
+        connectionFactory: (connection) => {
+          connection.on('error', (error) => {
+            console.error('MongoDB connection error:', error);
+            console.log('Application will continue without MongoDB connection');
+          });
+          connection.on('connected', () => {
+            console.log('MongoDB connected successfully');
+          });
+          return connection;
+        },
+        // Allow the application to start even if MongoDB is not available
+        connectionErrorFactory: (error) => {
+          console.error('MongoDB connection error:', error);
+          console.log('Application will continue without MongoDB connection');
+          return error;
+        },
       }),
       inject: [ConfigurationService],
     }),

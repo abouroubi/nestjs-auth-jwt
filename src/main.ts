@@ -1,14 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as helmet from 'helmet';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
 import { SnakeCaseInterceptor } from './shared/interceptors/snake-case.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const logger = new Logger('Main', true);
+  const logger = new Logger('Main', { timestamp: true });
   const globalPrefix = '/api';
 
   app.enableCors();
@@ -20,8 +20,7 @@ async function bootstrap() {
       .setTitle('Macaron API')
       .setDescription('API documentation for Macaron Engine')
       // .setVersion(version)
-      .setBasePath(globalPrefix)
-      .addBearerAuth('Authorization', 'header')
+      .addBearerAuth()
       .build();
 
     const swaggerDoc = SwaggerModule.createDocument(app, swaggerOptions);

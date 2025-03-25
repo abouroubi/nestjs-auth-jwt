@@ -1,6 +1,6 @@
 import { BaseModel, schemaOptions } from '../../shared/base.model';
-import { prop, ModelType } from 'typegoose';
-import { ObjectID } from 'mongodb';
+import { prop, getModelForClass } from '@typegoose/typegoose';
+import { Types } from 'mongoose';
 
 export class RefreshToken extends BaseModel {
   @prop({
@@ -10,7 +10,7 @@ export class RefreshToken extends BaseModel {
   value: string;
 
   @prop()
-  userId: ObjectID | string;
+  userId: Types.ObjectId | string;
 
   @prop({required: true})
   expiresAt: Date;
@@ -21,8 +21,8 @@ export class RefreshToken extends BaseModel {
   @prop()
   ipAddress: string;
 
-  static get model(): ModelType<RefreshToken> {
-    return new RefreshToken().getModelForClass(RefreshToken, { schemaOptions });
+  static get model() {
+    return getModelForClass(RefreshToken, { schemaOptions });
   }
 
   static get modelName(): string {

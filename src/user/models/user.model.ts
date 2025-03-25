@@ -1,4 +1,4 @@
-import { prop, ModelType } from 'typegoose';
+import { prop, getModelForClass } from '@typegoose/typegoose';
 import { BaseModel, schemaOptions } from '../../shared/base.model';
 import { Constants } from '../../shared/utils/constants';
 import { Gender } from './gender.enum';
@@ -38,8 +38,8 @@ export class User extends BaseModel {
   @prop({ enum: Object.keys(Gender) })
   gender?: Gender;
 
-  static get model(): ModelType<User> {
-    return new User().getModelForClass(User, { schemaOptions });
+  static get model() {
+    return getModelForClass(User, { schemaOptions });
   }
 
   static get modelName(): string {

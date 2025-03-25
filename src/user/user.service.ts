@@ -1,6 +1,7 @@
 import { Logger, Injectable } from '@nestjs/common';
 import { compare, genSalt, hash } from 'bcryptjs';
-import { ModelType, InstanceType } from 'typegoose';
+import { ReturnModelType } from '@typegoose/typegoose';
+import { DocumentType } from '@typegoose/typegoose';
 import { BaseService } from '../shared/base.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './models/user.model';
@@ -11,13 +12,13 @@ export class UserService extends BaseService<User> {
   private readonly logger = new Logger('UserSerivce');
 
   constructor(
-    @InjectModel(User.modelName) private readonly userModel: ModelType<User>,
+    @InjectModel(User.modelName) private readonly userModel: ReturnModelType<typeof User>,
   ) {
     super();
     this._model = userModel;
   }
 
-  async login(loginObject: LoginVm): Promise<InstanceType<User>> {
+  async login(loginObject: LoginVm): Promise<DocumentType<User>> {
     const { email, password } = loginObject;
 
     const user = await this.findOne({ email });
