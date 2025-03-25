@@ -4,7 +4,6 @@
 
 # NestJS JWT Authentication
 
-> This is a fork of [abouroubi/nestjs-auth-jwt](https://github.com/abouroubi/nestjs-auth-jwt) with upgraded dependencies and additional features.
 
 ## Description
 
