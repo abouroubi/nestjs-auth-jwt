@@ -34,7 +34,7 @@
     "dotenv": "^16.4.5",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "moment": "^2.30.1",
     "mongoose": "^8.2.2",
     "passport": "^0.7.0",
