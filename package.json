@@ -24,7 +24,7 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/mongoose": "^10.0.2",
     "@nestjs/passport": "^10.0.3",
-    "@nestjs/platform-express": "^10.3.3",
+    "@nestjs/platform-express": "^10.4.22",
     "@nestjs/swagger": "^7.3.0",
     "@typegoose/typegoose": "^12.2.0",
     "automapper-ts": "^1.9.0",
