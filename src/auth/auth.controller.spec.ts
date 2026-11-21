@@ -1,8 +1,10 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Request } from 'express';
 import { NotFoundError } from '../shared/errors/not-found.error';
-import { MapperService } from '../shared/mapper/mapper.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { TokenService } from './token/token.service';
@@ -14,251 +16,166 @@ describe('Auth Controller', () => {
   let module: TestingModule;
   let controller: AuthController;
 
-  const mockEmail = 'user@mail.com';
-  const mockPassword = 'password';
-  const mockLoginResponse = {
+  const mockLoginResponse: LoginResponseVm = {
     accessToken: 'accessToken',
     tokenType: 'bearer',
     expiresIn: 1,
     refreshToken: 'refreshToken',
   };
-  const mockUser = {
-    id: '1234',
-    type: 'user',
-  };
-
+  const mockUserId = '1234';
+  const mockClientId = 'clientId';
   const mockIp = '192.168.1.1';
-
   const mockRequest = {
     headers: {
-      'x-forwarded-for': mockIp,
-      authorization: 'Bearer ' + mockLoginResponse.accessToken,
+      authorization: `Bearer ${mockLoginResponse.accessToken}`,
     },
-    user: mockUser,
+  };
+  const credentials: LoginVm = {
+    email: 'user@mail.com',
+    password: 'password',
   };
 
-  const mockAuthService: Partial<AuthService> = {
-    login: jest.fn(
-      async (payLoad): Promise<LoginResponseVm> => {
-        return mockLoginResponse;
-      },
-    ),
+  const mockAuthService = {
+    login: jest.fn(),
     logoutFromAll: jest.fn(),
     logout: jest.fn(),
   };
-  const mockTokenService: Partial<TokenService> = {
-    getAccessTokenFromRefreshToken: jest.fn(
-      async (
-        refreshToken,
-        oldAccessToken,
-        userId,
-        ip,
-      ): Promise<LoginResponseVm> => {
-        if (
-          refreshToken !== mockLoginResponse.refreshToken ||
-          userId !== mockUser.id ||
-          oldAccessToken !== mockLoginResponse.accessToken
-        ) {
-          throw new NotFoundError();
-        }
-        return mockLoginResponse;
-      },
-    ),
+  const mockTokenService = {
+    getAccessTokenFromRefreshToken: jest.fn(),
   };
 
   beforeAll(async () => {
     module = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        {
-          provide: AuthService,
-          useValue: mockAuthService,
-        },
-        {
-          provide: TokenService,
-          useValue: mockTokenService,
-        },
-        MapperService,
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: TokenService, useValue: mockTokenService },
       ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
   });
+
+  afterAll(async () => {
+    await module.close();
+  });
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
 
   describe('Login', () => {
-    it('should raise exception when passing login and password equals undefined', async () => {
-      // Arrange
-      const loginVm: LoginVm = {
-        email: undefined,
-        password: undefined,
-      };
+    it('should raise UnauthorizedException when credentials do not match a user', async () => {
+      mockAuthService.login.mockResolvedValue(null);
 
-      try {
-        // Act
-        await controller.login(mockRequest, loginVm);
-      } catch (error) {
-        // Assert
-        expect(error).toBeInstanceOf(UnauthorizedException);
-        expect(error.message.statusCode).toEqual(401);
-      }
+      await expect(controller.login(mockIp, credentials)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
-    it('should login when login and password are correct', async () => {
-      // Arrange
-      const loginVm: LoginVm = {
-        email: mockEmail,
-        password: mockPassword,
-      };
+    it('should return the login response when credentials are correct', async () => {
+      mockAuthService.login.mockResolvedValue(mockLoginResponse);
 
-      // Act
-      const result = await controller.login(mockRequest, loginVm);
+      const result = await controller.login(mockIp, credentials);
 
-      // Assert
-      expect(mockAuthService.login).toBeCalled();
+      expect(mockAuthService.login).toHaveBeenCalledWith(credentials, mockIp);
       expect(result).toEqual(mockLoginResponse);
     });
   });
 
   describe('Logout', () => {
-    it('should raise exception when there is no refresh token', async () => {
-      // Arrange
-
-      const refreshToken = undefined;
-
-      const req = {
-        ...mockRequest,
-        user: mockUser,
-      };
-
-      try {
-        // Act
-        await controller.logout(req, refreshToken);
-      } catch (error) {
-        // Assert
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message.statusCode).toEqual(400);
-      }
+    it('should raise BadRequestException when there is no refresh token', async () => {
+      await expect(controller.logout(mockUserId, undefined)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockAuthService.logout).not.toHaveBeenCalled();
     });
 
-    it('should logout from all', async () => {
-      // Arrange
-
-      // Act
+    it('should logout from all devices', async () => {
       const result = await controller.logout(
-        mockRequest,
+        mockUserId,
         mockLoginResponse.refreshToken,
         true,
       );
 
-      // Assert
-      expect(mockAuthService.logoutFromAll).toBeCalled();
+      expect(mockAuthService.logoutFromAll).toHaveBeenCalledWith(mockUserId);
+      expect(mockAuthService.logout).not.toHaveBeenCalled();
       expect(result).toEqual({ message: 'ok' });
     });
 
     it('should logout', async () => {
-      // Arrange
-
-      // Act
       const result = await controller.logout(
-        mockRequest,
+        mockUserId,
         mockLoginResponse.refreshToken,
       );
 
-      // Assert
-      expect(mockAuthService.logout).toBeCalled();
+      expect(mockAuthService.logout).toHaveBeenCalled();
+      expect(mockAuthService.logoutFromAll).not.toHaveBeenCalled();
       expect(result).toEqual({ message: 'ok' });
     });
   });
 
   describe('Token', () => {
-    it('should raise exception when passing undefined refresh token', async () => {
-      // Arrange
-      const refreshToken = undefined;
-
-      const req: Partial<Request> = {
-        ...mockRequest,
-        user: {},
-      };
-
-      try {
-        // Act
-        await controller.token(
-          req,
-          mockIp,
-          GrantType.RefreshToken,
-          refreshToken,
-        );
-      } catch (error) {
-        // Assert
-        expect(mockTokenService.getAccessTokenFromRefreshToken).toBeCalled();
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message.statusCode).toEqual(400);
-      }
-    });
-
-    it('should raise exception when passing undefined user', async () => {
-      // Arrange
-      const refreshToken = mockLoginResponse.refreshToken;
-
-      const req: Partial<Request> = {
-        ...mockRequest,
-        user: undefined,
-      };
-
-      try {
-        // Act
-        await controller.token(
-          req,
-          mockIp,
-          GrantType.RefreshToken,
-          refreshToken,
-        );
-      } catch (error) {
-        // Assert
-        expect(mockTokenService.getAccessTokenFromRefreshToken).toBeCalled();
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message.statusCode).toEqual(400);
-      }
-    });
-
-    it('should raise exception when grant type is not RefreshToken', async () => {
-      // Arrange
-      const refreshToken = undefined;
-
-      const req: Partial<Request> = {
-        ...mockRequest,
-        user: {},
-      };
-
-      try {
-        // Act
-        await controller.token(req, GrantType.AuthorizationCode, refreshToken);
-      } catch (error) {
-        // Assert
-        expect(mockTokenService.getAccessTokenFromRefreshToken).toBeCalled();
-        expect(error).toBeInstanceOf(BadRequestException);
-        expect(error.message.statusCode).toEqual(400);
-      }
-    });
-
-    it('should return acces token when user and refresh token are correct', async () => {
-      // Arrange
-      const refreshToken = mockLoginResponse.refreshToken;
-
-      // Act
-      const result = await controller.token(
+    const requestToken = (
+      grantType: GrantType,
+      refreshToken: string | undefined = mockLoginResponse.refreshToken,
+    ) =>
+      controller.token(
         mockRequest,
         mockIp,
-        GrantType.RefreshToken,
+        grantType,
         refreshToken,
-        mockUser.id,
+        mockClientId,
       );
 
-      // Assert
-      expect(mockTokenService.getAccessTokenFromRefreshToken).toBeCalled();
+    it('should raise BadRequestException when the token service cannot find the refresh token', async () => {
+      mockTokenService.getAccessTokenFromRefreshToken.mockRejectedValue(
+        new NotFoundError('Refresh token not found'),
+      );
+
+      await expect(
+        requestToken(GrantType.RefreshToken, undefined),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should raise InternalServerErrorException when the token service fails for any other reason', async () => {
+      mockTokenService.getAccessTokenFromRefreshToken.mockRejectedValue(
+        new Error('Refresh token expired'),
+      );
+
+      await expect(requestToken(GrantType.RefreshToken)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    it('should raise BadRequestException when grant type is not RefreshToken', async () => {
+      await expect(requestToken(GrantType.AuthorizationCode)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(
+        mockTokenService.getAccessTokenFromRefreshToken,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should return a new access token when the refresh token is valid', async () => {
+      mockTokenService.getAccessTokenFromRefreshToken.mockResolvedValue(
+        mockLoginResponse,
+      );
+
+      const result = await requestToken(GrantType.RefreshToken);
+
+      expect(
+        mockTokenService.getAccessTokenFromRefreshToken,
+      ).toHaveBeenCalledWith(
+        mockLoginResponse.refreshToken,
+        mockLoginResponse.accessToken,
+        mockClientId,
+        mockIp,
+      );
       expect(result).toEqual(mockLoginResponse);
     });
   });
