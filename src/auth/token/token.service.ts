@@ -28,7 +28,8 @@ export class TokenService extends BaseService<RefreshToken> {
   private readonly usersExpired: Record<string, number> = {};
 
   constructor(
-    @InjectModel(RefreshToken.modelName) tokenModel: ReturnModelType<typeof RefreshToken>,
+    @InjectModel(RefreshToken.modelName)
+    tokenModel: ReturnModelType<typeof RefreshToken>,
     private readonly configurationService: ConfigurationService,
     private readonly mapperService: MapperService,
   ) {
@@ -92,7 +93,7 @@ export class TokenService extends BaseService<RefreshToken> {
     // If expires is negative it means that token should not expire
     // Create a new options object to avoid modifying the original
     const options: SignOptions = { ...this.jwtOptions };
-    
+
     if (typeof expires === 'number' && expires > 0) {
       options.expiresIn = expires;
     } else if (typeof expires === 'string' && expires) {

@@ -12,7 +12,8 @@ export class UserService extends BaseService<User> {
   private readonly logger = new Logger('UserSerivce');
 
   constructor(
-    @InjectModel(User.modelName) private readonly userModel: ReturnModelType<typeof User>,
+    @InjectModel(User.modelName)
+    private readonly userModel: ReturnModelType<typeof User>,
   ) {
     super();
     this._model = userModel;

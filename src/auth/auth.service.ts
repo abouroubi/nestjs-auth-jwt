@@ -28,9 +28,8 @@ export class AuthService {
       sub: loginResults.id,
     };
 
-    const loginResponse: LoginResponseVm = await this.tokenService.createAccessToken(
-      payload,
-    );
+    const loginResponse: LoginResponseVm =
+      await this.tokenService.createAccessToken(payload);
 
     // We save the user's refresh token
     const tokenContent = {

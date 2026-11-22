@@ -4,5 +4,4 @@ export enum GrantType {
   AuthorizationCode = 'authorization-code',
   Implicit = 'implicit',
   ClientCredentials = 'client-credentials',
-
 }
