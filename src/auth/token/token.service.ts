@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { randomBytes } from 'crypto';
-import { sign, SignOptions, verify, Secret } from 'jsonwebtoken';
+import { sign, SignOptions, verify } from 'jsonwebtoken';
 import moment from 'moment';
 import { Types } from 'mongoose';
-import { DocumentType, ReturnModelType } from '@typegoose/typegoose';
+import { ReturnModelType } from '@typegoose/typegoose';
 import { BaseService } from '../../shared/base.service';
 import { ConfigurationService } from '../../shared/configuration/configuration.service';
 import { NotFoundError } from '../../shared/errors/not-found.error';
@@ -156,17 +156,6 @@ export class TokenService extends BaseService<RefreshToken> {
   async deleteRefreshToken(userId: string, value: string) {
     await this.delete({ value });
     await this.revokeTokenForUser(userId);
-  }
-
-  async decodeAndValidateJWT(token: string): Promise<any> {
-    if (token) {
-      try {
-        const payload = await this.validateToken(token);
-        return await this.validatePayload(payload);
-      } catch (error) {
-        return null;
-      }
-    }
   }
 
   async validatePayload(payload: JwtPayload): Promise<any> {

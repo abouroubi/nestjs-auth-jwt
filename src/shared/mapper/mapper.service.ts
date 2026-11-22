@@ -21,7 +21,7 @@ export class MapperService {
     return this.mapper.createMap(source, destination);
   }
 
-  private static configure(config: AutoMapperJs.IConfiguration): void {}
+  private static configure(): void {}
 
   map<K>(
     object: any | any[],

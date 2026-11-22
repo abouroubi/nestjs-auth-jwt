@@ -8,12 +8,8 @@ export class ConfigurationService {
   private currentEnv: string = process.env.NODE_ENV || 'development';
 
   constructor() {
-    try {
-      const result = dotenv.config();
-      if (result.error) {
-        this.logger.warn('Error loading .env file, using default values');
-      }
-    } catch (error) {
+    const result = dotenv.config();
+    if (result.error) {
       this.logger.warn('Error loading .env file, using default values');
     }
   }

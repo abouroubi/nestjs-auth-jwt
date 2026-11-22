@@ -49,7 +49,7 @@ export class UserController {
       throw new BadRequestException(`${email} already exists`);
     }
 
-    const userModel = await this.mapperService.map<User>(
+    const userModel = this.mapperService.map<User>(
       registerVm,
       RegisterUserVm.name,
       User.name,
