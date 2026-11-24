@@ -51,7 +51,6 @@ describe('AuthService', () => {
     it('should logout from all', async () => {
       // Arrange
       const userId = 'mockuserId';
-      const type = 'Client';
 
       // Act
       await service.logoutFromAll(userId);

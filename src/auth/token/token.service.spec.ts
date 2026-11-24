@@ -1,31 +1,43 @@
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as moment from 'moment';
+import moment from 'moment';
 import { Types } from 'mongoose';
-import { ModelType } from 'typegoose';
 import { ConfigurationService } from '../../shared/configuration/configuration.service';
 import { NotFoundError } from '../../shared/errors/not-found.error';
 import { MapperService } from '../../shared/mapper/mapper.service';
-import { AuthService } from '../auth.service';
 import { RefreshToken } from '../models/refresh-token.model';
-import { LoginResponseVm } from '../view-models/login-response-vm.model';
 import { TokenService } from './token.service';
-import * as jsonwebtoken from 'jsonwebtoken';
-import { JwtPayload } from '../jwt-payload';
 
-// Mock the jsonwebtoken module
-// Maybe not the best way to do it but it works
-(jsonwebtoken as any).verify = jest.fn(
-  (): JwtPayload => ({
-    sub: '507f1f77bcf86cd799439011',
-  }),
-);
+jest.mock('jsonwebtoken', () => ({
+  ...jest.requireActual('jsonwebtoken'),
+  verify: jest.fn(() => ({ sub: '507f1f77bcf86cd799439011' })),
+}));
+
+const createRefreshTokenModelMock = () =>
+  Object.assign(jest.fn(), {
+    findOneAndDelete: jest.fn(),
+    findOne: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    create: jest.fn(),
+    deleteMany: jest.fn(),
+  });
+
+const execResolving = (value?: unknown) => ({
+  exec: jest.fn().mockResolvedValue(value),
+});
 
 describe('TokenService', () => {
   let module: TestingModule;
   let service: TokenService;
-  let spyRefreshTokenModel;
-  let spyAuthService: Partial<AuthService>;
+  let refreshTokenModel: ReturnType<typeof createRefreshTokenModelMock>;
+
+  const userId = '507f1f77bcf86cd799439011';
+  const clientId = 'clientId';
+  const ipAddress = '192.168.1.1';
+  const oldAccessToken = 'oldAccessToken';
+  const refreshToken = 'testRefreshToken';
+
+  const persistedRefreshToken = () => refreshTokenModel.create.mock.calls[0][0];
 
   beforeAll(async () => {
     module = await Test.createTestingModule({
@@ -33,193 +45,137 @@ describe('TokenService', () => {
         TokenService,
         {
           provide: getModelToken(RefreshToken.modelName),
-          useFactory: () => ({
-            findOneAndDelete: jest.fn(),
-            findOne: jest.fn(),
-            findByIdAndUpdate: jest.fn(),
-            create: jest.fn(),
-            deleteMany: jest.fn(),
-          }),
-        },
-        {
-          provide: AuthService,
-          useFactory: () => ({}),
+          useFactory: createRefreshTokenModelMock,
         },
         MapperService,
         ConfigurationService,
       ],
     }).compile();
     service = module.get<TokenService>(TokenService);
-    spyRefreshTokenModel = module.get(getModelToken(RefreshToken.modelName));
-    spyAuthService = module.get<AuthService>(AuthService);
+    refreshTokenModel = module.get(getModelToken(RefreshToken.modelName));
   });
 
-  it('should be defined', async () => {
-    // Arrange
-    // Act
-    // Assert
+  afterAll(async () => {
+    await module.close();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
   describe('Get access token with refresh token', () => {
-    it('should return not found when refresh token does not exist', async () => {
-      // Arrange
-
-      const oldAccessToken = 'oldAccessToken';
-      const refreshToken = 'testRefreshToken';
-      const user = {
-        id: '507f1f77bcf86cd799439011',
-        ip: '192.168.1.1',
-      };
-
-      spyRefreshTokenModel.findOne = jest.fn(() => ({ exec: jest.fn() }));
-
-      try {
-        // Act
-        await service.getAccessTokenFromRefreshToken(
-          refreshToken,
-          oldAccessToken,
-          user.id,
-          user.ip,
-        );
-      } catch (error) {
-        // Assert
-        expect(error).toBeInstanceOf(NotFoundError);
-        expect(error.message).toBe('Refresh token not found');
-      }
-    });
-
-    it('should return error when refresh token expired', async () => {
-      // Arrange
-
-      const oldAccessToken = 'oldAccessToken';
-      const refreshToken = 'testRefreshToken';
-      const user = {
-        id: '507f1f77bcf86cd799439011',
-        ip: '192.168.1.1',
-      };
-
-      spyRefreshTokenModel.findOne = jest.fn(() => ({
-        exec: jest.fn(() => ({
-          expiresAt: moment()
-            .subtract(1, 'd')
-            .toDate(),
-        })),
-      }));
-
-      try {
-        // Act
-        await service.getAccessTokenFromRefreshToken(
-          refreshToken,
-          oldAccessToken,
-          user.id,
-          user.ip,
-        );
-      } catch (error) {
-        // Assert
-        expect(error).toBeInstanceOf(Error);
-        expect(error.message).toBe('Refresh token expired');
-      }
-    });
-
-    it('should return an access token when refresh token is valid', async () => {
-      // Arrange
-      const oldAccessToken = 'oldAccessToken';
-      const refreshToken = 'testRefreshToken';
-      const user = {
-        id: 'userId',
-        ip: '192.168.1.1',
-      };
-
-      const loginresponse: LoginResponseVm = {
-        accessToken: 'mockAccessToken',
-        expiresIn: 1,
-        tokenType: 'bearer',
-      };
-
-      spyRefreshTokenModel.findOne = jest.fn(() => ({
-        exec: jest.fn(() => ({
-          expiresAt: moment()
-            .add(1, 'd')
-            .toDate(),
-        })),
-      }));
-      spyRefreshTokenModel.create = jest.fn(() => ({
-        exec: jest.fn(),
-      }));
-
-      spyRefreshTokenModel.findOneAndDelete = jest.fn(() => ({ exec: jest.fn() }));
-
-      // Act
-      const result = await service.getAccessTokenFromRefreshToken(
+    const refresh = () =>
+      service.getAccessTokenFromRefreshToken(
         refreshToken,
         oldAccessToken,
-        user.id,
-        user.ip,
+        clientId,
+        ipAddress,
       );
 
-      // Assert
-      expect(spyRefreshTokenModel.create).toBeCalled();
-      expect(spyRefreshTokenModel.findOneAndDelete).toBeCalled();
-      expect(spyRefreshTokenModel.findOne).toBeCalled();
-      expect(result).toBeDefined();
+    const expectNoRotation = () => {
+      expect(refreshTokenModel.findOneAndDelete).not.toHaveBeenCalled();
+      expect(refreshTokenModel.create).not.toHaveBeenCalled();
+    };
+
+    it('should reject with NotFoundError when refresh token does not exist', async () => {
+      refreshTokenModel.findOne.mockReturnValue(execResolving(null));
+
+      const result = refresh();
+
+      await expect(result).rejects.toBeInstanceOf(NotFoundError);
+      await expect(result).rejects.toThrow('Refresh token not found');
+      expectNoRotation();
+    });
+
+    it('should reject when refresh token expired', async () => {
+      refreshTokenModel.findOne.mockReturnValue(
+        execResolving({ expiresAt: moment().subtract(1, 'd').toDate() }),
+      );
+
+      await expect(refresh()).rejects.toThrow('Refresh token expired');
+      expectNoRotation();
+    });
+
+    it('should rotate the refresh token and return a new access token when refresh token is valid', async () => {
+      const storedTokenId = new Types.ObjectId().toHexString();
+      refreshTokenModel.findOne.mockReturnValue(
+        execResolving({
+          id: storedTokenId,
+          expiresAt: moment().add(1, 'd').toDate(),
+        }),
+      );
+      refreshTokenModel.findOneAndDelete.mockReturnValue(execResolving());
+
+      const result = await refresh();
+
+      expect(refreshTokenModel.findOne).toHaveBeenCalledWith({
+        value: refreshToken,
+      });
+      expect(refreshTokenModel.findOneAndDelete).toHaveBeenCalledWith({
+        _id: new Types.ObjectId(storedTokenId),
+      });
+      expect(result.accessToken).toEqual(expect.any(String));
+      expect(result.refreshToken).toHaveLength(128);
+      expect(persistedRefreshToken().value).toEqual(result.refreshToken);
     });
   });
 
   describe('Get refresh token', () => {
-    it('should return refresh token', async () => {
-      // Arrange
-      const tokenContent = {
-        userId: '507f1f77bcf86cd799439011',
-        clientId: 'clientId',
-        ipAddress: '8.8.8.8',
-      };
+    it('should persist and return a 128-character refresh token', async () => {
+      const result = await service.createRefreshToken({
+        userId,
+        clientId,
+        ipAddress,
+      });
 
-      spyRefreshTokenModel.create = jest.fn(() => ({ exec: jest.fn() }));
-
-      // Act
-      const result = await service.createRefreshToken(tokenContent);
-
-      // Assert
-      expect(spyRefreshTokenModel.create).toBeCalled();
       expect(result).toHaveLength(128);
+      expect(persistedRefreshToken()).toMatchObject({
+        value: result,
+        userId: new Types.ObjectId(userId),
+        clientId,
+        ipAddress,
+      });
+      expect(persistedRefreshToken().expiresAt.getTime()).toBeGreaterThan(
+        Date.now(),
+      );
     });
   });
 
   describe('Delete refresh token', () => {
-    beforeEach(async () => {
-      spyRefreshTokenModel.deleteMany = jest.fn(() => ({ exec: jest.fn() }));
+    const expectAccessTokensRevoked = async (revokedUserId: string) => {
+      const issuedBeforeRevocation = { sub: revokedUserId, exp: 1 };
+      expect(await service.validatePayload(issuedBeforeRevocation)).toBeNull();
+    };
+
+    beforeEach(() => {
+      refreshTokenModel.deleteMany.mockReturnValue(execResolving());
     });
 
-    it('should delete refresh token by userId', async () => {
-      // Arrange
-      const tokenContent = {
-        userId: '507f1f77bcf86cd799439011',
-        clientId: 'clientId',
-        ipAddress: '8.8.8.8',
-      };
+    it('should delete refresh tokens by userId and revoke their access tokens', async () => {
+      const revokedUserId = new Types.ObjectId().toHexString();
 
-      // Act
-      await service.deleteRefreshTokenForUser(tokenContent.userId);
+      await service.deleteRefreshTokenForUser(revokedUserId);
 
-      // Assert
-      expect(spyRefreshTokenModel.deleteMany).toBeCalledWith({
-        userId: Types.ObjectId(tokenContent.userId),
+      expect(refreshTokenModel.deleteMany).toHaveBeenCalledWith({
+        userId: new Types.ObjectId(revokedUserId),
       });
+      await expectAccessTokensRevoked(revokedUserId);
     });
 
-    it('should delete refresh token by value', async () => {
-      // Arrange
+    it('should delete refresh token by value and revoke the access tokens of its user', async () => {
+      const revokedUserId = new Types.ObjectId().toHexString();
       const tokenValue = 'mockTokenValue';
-      const mockUserId = '507f1f77bcf86cd799439011';
 
-      // Act
-      const result = await service.deleteRefreshToken(mockUserId, tokenValue);
+      await service.deleteRefreshToken(revokedUserId, tokenValue);
 
-      // Assert
-      expect(spyRefreshTokenModel.deleteMany).toBeCalledWith({
+      expect(refreshTokenModel.deleteMany).toHaveBeenCalledWith({
         value: tokenValue,
       });
+      await expectAccessTokensRevoked(revokedUserId);
     });
   });
 });

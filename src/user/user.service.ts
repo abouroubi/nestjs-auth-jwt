@@ -12,7 +12,8 @@ export class UserService extends BaseService<User> {
   private readonly logger = new Logger('UserSerivce');
 
   constructor(
-    @InjectModel(User.modelName) private readonly userModel: ReturnModelType<typeof User>,
+    @InjectModel(User.modelName)
+    private readonly userModel: ReturnModelType<typeof User>,
   ) {
     super();
     this._model = userModel;
@@ -49,13 +50,10 @@ export class UserService extends BaseService<User> {
     newUser.birthDate = user.birthDate;
     newUser.deviceId = user.deviceId;
 
-    try {
-      const result = await this.create(newUser);
-      return result.toJSON();
-    } catch (e) {
-      // @todo: change this thrwo to typed exception that can be easily casted in controller
-      throw e;
-    }
+    // TODO: map duplicate-key errors (concurrent registration of the same
+    // email) to a typed error the controller can turn into a 400.
+    const result = await this.create(newUser);
+    return result.toJSON();
   }
 
   protected async hashPassword(password: string): Promise<string> {

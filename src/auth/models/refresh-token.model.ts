@@ -12,7 +12,7 @@ export class RefreshToken extends BaseModel {
   @prop()
   userId: Types.ObjectId | string;
 
-  @prop({required: true})
+  @prop({ required: true })
   expiresAt: Date;
 
   @prop()

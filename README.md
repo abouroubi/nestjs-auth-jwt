@@ -4,7 +4,6 @@
 
 # NestJS JWT Authentication
 
-
 ## Description
 
 A robust NestJS application demonstrating secure authentication using JWT with a modern token management approach:
@@ -69,6 +68,7 @@ Access the Swagger documentation at [http://localhost:3000/api/swagger](http://l
 ## API Endpoints
 
 - **Authentication**
+
   - POST `/api/auth/login` - Authenticate user and get tokens
   - POST `/api/auth/refresh-token` - Get new access token using refresh token
   - POST `/api/auth/logout` - Logout from current device

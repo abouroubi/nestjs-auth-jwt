@@ -25,9 +25,9 @@ export class UserController {
     this.mapperService.createMap(RegisterUserVm.name, User.name);
     this.mapperService
       .createMap(User.name, UserVm.name)
-      .forSourceMember('_id', opts => opts.ignore())
-      .forSourceMember('password', opts => opts.ignore())
-      .forSourceMember('__v', opts => opts.ignore());
+      .forSourceMember('_id', (opts) => opts.ignore())
+      .forSourceMember('password', (opts) => opts.ignore())
+      .forSourceMember('__v', (opts) => opts.ignore());
   }
 
   @Post('user/register')
@@ -49,12 +49,12 @@ export class UserController {
       throw new BadRequestException(`${email} already exists`);
     }
 
-    const userModel = await this.mapperService.map<User>(
+    const userModel = this.mapperService.map<User>(
       registerVm,
-      RegisterUserVm.name,
       User.name,
+      RegisterUserVm.name,
     );
     const newUser = await this.userService.register(userModel);
-    return this.mapperService.map<UserVm>(newUser, User.name, UserVm.name);
+    return this.mapperService.map<UserVm>(newUser, UserVm.name, User.name);
   }
 }

@@ -12,7 +12,7 @@ import { prop, modelOptions } from '@typegoose/typegoose';
       getters: true,
     },
     timestamps: true,
-  }
+  },
 })
 export class BaseModel {
   @prop({ default: Date.now })
@@ -20,7 +20,7 @@ export class BaseModel {
 
   @prop({ default: Date.now })
   updatedAt?: Date;
-  
+
   id?: string; // Virtual getter for _id
 }
 
@@ -38,10 +38,10 @@ export const schemaOptions: SchemaOptions = {
 export class BaseModelVm {
   @ApiProperty({ type: String, format: 'date-time', required: false })
   createdAt?: Date;
-  
+
   @ApiProperty({ type: String, format: 'date-time', required: false })
   updatedAt?: Date;
-  
+
   @ApiProperty({ required: false })
   id?: string;
 }
