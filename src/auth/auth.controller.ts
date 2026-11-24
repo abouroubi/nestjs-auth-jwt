@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   InternalServerErrorException,
+  Ip,
   Post,
   Query,
   Req,
@@ -20,7 +21,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { ExtractJwt } from 'passport-jwt';
-import { Ip } from '../shared/decorators/ip.decorator';
 import { User } from '../shared/decorators/user.decorator';
 import { NotFoundError } from '../shared/errors/not-found.error';
 import { GetOperationId } from '../shared/utils/get-operation-id';
