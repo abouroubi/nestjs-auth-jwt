@@ -51,10 +51,10 @@ export class UserController {
 
     const userModel = this.mapperService.map<User>(
       registerVm,
-      RegisterUserVm.name,
       User.name,
+      RegisterUserVm.name,
     );
     const newUser = await this.userService.register(userModel);
-    return this.mapperService.map<UserVm>(newUser, User.name, UserVm.name);
+    return this.mapperService.map<UserVm>(newUser, UserVm.name, User.name);
   }
 }
